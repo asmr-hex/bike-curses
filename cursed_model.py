@@ -1,4 +1,5 @@
 import nltk
+from cursed_token import Token
 
 
 class Model:
@@ -14,7 +15,8 @@ class Model:
             self.train_on_corpus(corpus)
 
         #  compute all probabilities
-        #  TODO
+        for token in self.markov_states.values():
+            token.compute_probabilities()
 
     def train_on_corpus(self, corpus):
         # preprocessing
@@ -24,13 +26,20 @@ class Model:
         current_token = None
         next_token = None
 
-        # tokens without parts of speech tracked
-        no_pos = {}
+        # keep track of sequence of tokens for each sentencey thing
+        sentence = []
 
         # start streaming coprus line by line
         for line in corpus:
             # tokenize this line
-            tokens = []  # TODO tokenize here
+            tokens = nltk.word_tokenize(line)
+
+            # ignore single word lines
+            if len(tokens) < 2:
+                continue
+
+            # appending new line since word_tokenize takes it out
+            tokens += ["\n"]
 
             for idx, token in enumerate(tokens):
                 if idx == 0:
@@ -39,33 +48,61 @@ class Model:
                     # last token of last line (presumably "\n")
                     # unless current_token is None (which means its the
                     # beginning of a corpus)
-                    first_token = tokens[0]
+                    #
+                    # current_token should be "\n"
+                    first_token = token
                     if current_token:
-                        current_token.make_observation(previous_tokens, first_token)
+                        # tokenize previous lines \n token since we now
+                        # have all its info w.r.t. prev and next
+                        self.update_markov_state(
+                            prev_token, current_token, first_token)
 
                     current_token = first_token
+                    next_token = tokens[1]
 
-                    break
+                    # tokenize this current token
+                    self.update_markov_state(
+                            prev_token, current_token, next_token)
+
                 elif idx == len(tokens)-1:
                     # last token of line (presumably \n)
-                    break
+                    prev_token = current_token
+                    current_token = token  # this should be \n
                 else:
                     # interior token of line
-                    break
+                    prev_token = current_token
+                    current_token = token
+                    next_token = tokens[idx+1]
 
-            
-        while:
-            prev, curr, next
-            markov_states ={}
+                    self.update_markov_state(
+                        prev_token, current_token, next_token)
 
-            if curr in markov_states:
-                curr.make_observation(prev, next)
-            else:
-                # compute part of speech
+                # update parts of speech if necessary
+                sentence = self.track_pos(token, sentence)
 
-                # compute phonemes
+    def track_pos(self, token, sentence):
+        # check whether we are at the end of a sentencey thing
+        if token in [".", "!", "?", ";"]:
+            # pos tag here
+            for posses in nltk.pos_tag(sentence):
+                self.markov_states[posses[0]].set_part_of_speech(
+                    posses[1])
 
-                # add 
+            # clear sentence buffer
+            sentence = []
+        else:
+            # continue adding to the sentence thingy
+            sentence.append(token)
 
-        for token in markov_states:
-            token.compute_probabilities()
+        return sentence
+
+    def update_markov_state(self, prev_word, curr_word, next_word):
+        if curr_word not in self.markov_states:
+            # if this is a new token, assign phonemes
+            curr_token = Token(curr_word, self.phonemes[curr_word][0])
+            self.markov_states[curr_word] = curr_token
+
+        # make observation for this token
+        self.markov_states[curr_word].make_observation(
+            prev_word,
+            next_word)

@@ -3,7 +3,7 @@ class Token:
     def __init__(self, word, phonemes):
         self.word = word
         self.freq = 0
-        self.pos = None
+        self.pos = set()
         self.phonemes = phonemes
 
         # maps from token to count
@@ -13,7 +13,7 @@ class Token:
         self.n_next_tokens = 0
 
     def set_part_of_speech(self, pos):
-        self.pos = pos
+        self.pos.add(pos)
 
     def make_observation(self, prev_token, next_token):
         self.increment_frequency()
