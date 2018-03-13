@@ -18,7 +18,10 @@ class Model:
         for token in self.markov_states.values():
             token.compute_probabilities()
 
-    def train_on_corpus(self, corpus):
+    def train_cfg_on_corpus(self, corpus):
+        return
+
+    def train_markov_states_on_corpus(self, corpus):
         # preprocessing
 
         # initialize prev_token to line break token
