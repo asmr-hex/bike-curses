@@ -7,7 +7,10 @@ class Token:
         self.word = word
         self.freq = 0
         self.pos = set()
-        self.phonemes = nltk.corpus.cmudict.dict()[word][0]
+        self.phonemes = []
+        if word in nltk.corpus.cmudict.dict():
+            self.phonemes = nltk.corpus.cmudict.dict()[word][0]
+            print("\t\t"+word+" ("+" ".join(self.phonemes)+")")
 
         # maps from token to count
         self.previous_tokens = {}
@@ -19,15 +22,25 @@ class Token:
         self.pos.add(pos)
 
     def make_observation(self, prev_token, next_token):
+        print(
+            (prev_token or "None") +
+            " --> "+self.word +
+            " --> "+next_token)
         self.freq += 1
         self.add_previous(prev_token)
         self.add_next(next_token)
 
     def add_previous(self, token):
+        if not token:
+            return
+
         self.n_previous_tokens += 1
         self.add_token(self.previous_tokens, token)
 
     def add_next(self, token):
+        if not token:
+            return
+
         self.n_next_tokens += 1
         self.add_token(self.next_tokens, token)
 

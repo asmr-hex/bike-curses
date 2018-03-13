@@ -1,5 +1,6 @@
 import nltk
 from cursed_token import Token
+import sys
 
 
 class Model:
@@ -7,6 +8,8 @@ class Model:
         self.markov_states = {}
 
     def train(self, filename, mode="markov"):
+        print("hi, welcome friend. we're currently training on " + filename)
+
         # open training file
         with open(filename) as corpus:
             if mode is "markov":
@@ -22,7 +25,7 @@ class Model:
         return
 
     def train_markov_states_on_corpus(self, corpus):
-        # preprocessing
+        print("training markov model.")
 
         # initialize prev_token to line break token
         prev_token = Token("\n")
@@ -87,10 +90,12 @@ class Model:
     def track_pos(self, token, sentence):
         # check whether we are at the end of a sentencey thing
         if token in [".", "!", "?", ";"]:
+            print(" ".join(sentence))
             # pos tag here
             for posses in nltk.pos_tag(sentence):
                 self.markov_states[posses[0]].set_part_of_speech(
                     posses[1])
+                print(posses, end="")
 
             # clear sentence buffer
             sentence = []
@@ -109,3 +114,17 @@ class Model:
         self.markov_states[curr_token].make_observation(
             prev_token,
             next_token)
+
+
+if __name__ == "__main__":
+    # we are gunna run this
+    mode = sys.argv[1]
+
+    model = Model()
+
+    if mode == "train":
+        model.train("corpora/paradiselost-normalized.txt", mode="markov")
+        model.train("corpora/tirukkural_couplets.txt", mode="cfg")
+
+    if mode == "generate":
+        pass
