@@ -1,10 +1,13 @@
+import nltk
+
+
 class Token:
     """A class to describe tokens in our model"""
-    def __init__(self, word, phonemes):
+    def __init__(self, word):
         self.word = word
         self.freq = 0
         self.pos = set()
-        self.phonemes = phonemes
+        self.phonemes = nltk.corpus.cmudict.dict()[word][0]
 
         # maps from token to count
         self.previous_tokens = {}
@@ -16,12 +19,9 @@ class Token:
         self.pos.add(pos)
 
     def make_observation(self, prev_token, next_token):
-        self.increment_frequency()
+        self.freq += 1
         self.add_previous(prev_token)
         self.add_next(next_token)
-
-    def increment_frequency(self):
-        self.freq += 1
 
     def add_previous(self, token):
         self.n_previous_tokens += 1
@@ -32,10 +32,11 @@ class Token:
         self.add_token(self.next_tokens, token)
 
     def add_token(self, collection, token):
+        """adds a token to a collection of previous or next tokens. """
         if token in collection:
-            collection[token] = 1
-        else:
             collection[token] += 1
+        else:
+            collection[token] = 1
 
     def compute_probabilities(self):
         """run this method at the end of training"""

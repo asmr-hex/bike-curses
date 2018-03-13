@@ -4,15 +4,15 @@ from cursed_token import Token
 
 class Model:
     def __init__(self):
-        self.phonemes = nltk.corpus.cmudict.dict()
         self.markov_states = {}
 
-    def train(self):
-        #  get all corpora
-        corpora = ["a", "b"]
-
-        for corpus in corpora:
-            self.train_on_corpus(corpus)
+    def train(self, filename, mode="markov"):
+        # open training file
+        with open(filename) as corpus:
+            if mode is "markov":
+                self.train_markov_states_on_corpus(corpus)
+            else:
+                self.train_cfg_on_corpus(corpus)
 
         #  compute all probabilities
         for token in self.markov_states.values():
@@ -60,6 +60,7 @@ class Model:
                         self.update_markov_state(
                             prev_token, current_token, first_token)
 
+                    prev_token = current_token
                     current_token = first_token
                     next_token = tokens[1]
 
@@ -99,13 +100,12 @@ class Model:
 
         return sentence
 
-    def update_markov_state(self, prev_word, curr_word, next_word):
-        if curr_word not in self.markov_states:
+    def update_markov_state(self, prev_token, curr_token, next_token):
+        if curr_token not in self.markov_states:
             # if this is a new token, assign phonemes
-            curr_token = Token(curr_word, self.phonemes[curr_word][0])
-            self.markov_states[curr_word] = curr_token
+            self.markov_states[curr_token] = Token(curr_token)
 
         # make observation for this token
-        self.markov_states[curr_word].make_observation(
-            prev_word,
-            next_word)
+        self.markov_states[curr_token].make_observation(
+            prev_token,
+            next_token)

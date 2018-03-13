@@ -3,18 +3,18 @@ class CFG:
         self.structures = {}
         self.total = 0
 
-    def add_structure(self, structure):
-        structure_id = "".join(structure)
-        if structure.id in self.structures:
+    def add_structure(self, pattern):
+        structure_id = "".join(pattern)
+        if structure_id in self.patterns:
             self.structures[structure_id].count += 1
         else:
-            self.structures[structure_id] = Structure(structure)
+            self.structures[structure_id] = Structure(pattern)
 
         self.total += 1
 
     def compute_probability(self):
-        for structure in self.structures:
-            structure.compute_probability(self.total)
+        for pattern in self.structures:
+            pattern.compute_probability(self.total)
 
 
 class Structure:
