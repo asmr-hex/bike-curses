@@ -1,11 +1,13 @@
 import nltk
 from cursed_token import Token
+from cursed_cfg import CFG
 import sys
 
 
 class Model:
     def __init__(self):
         self.markov_states = {}
+        self.cfg = CFG()
 
     def train(self, filename, mode="markov"):
         print("hi, welcome friend. we're currently training on " + filename)
@@ -22,7 +24,14 @@ class Model:
             token.compute_probabilities()
 
     def train_cfg_on_corpus(self, corpus):
-        return
+        print("training context-free grammar model.")
+
+        for line in corpus:
+            tokens = nltk.word_tokenize(line)
+            tags = [tup[1] for tup in nltk.pos_tag(tokens)]
+            self.cfg.add_structure(tags)
+
+        self.cfg.compute_probability()
 
     def train_markov_states_on_corpus(self, corpus):
         print("training markov model.")
@@ -123,8 +132,8 @@ if __name__ == "__main__":
     model = Model()
 
     if mode == "train":
-        model.train("corpora/paradiselost-normalized.txt", mode="markov")
         model.train("corpora/tirukkural_couplets.txt", mode="cfg")
+        model.train("corpora/paradiselost-normalized.txt", mode="markov")
 
     if mode == "generate":
         pass
