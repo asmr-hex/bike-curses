@@ -1,10 +1,12 @@
 import nltk
-from collections import defaultdoct
+from collections import defaultdict
 from cursed_token import Token
 from cursed_cfg import CFG
 import sys
 import json
 import random
+import pickle
+import math
 
 
 class Model:
@@ -31,7 +33,7 @@ class Model:
 
         #  compute all probabilities
         for token in self.markov_states.values():
-            token.compute_probabilities()
+            token.compute_probabilities(len(self.markov_states))
 
     def train_cfg_on_corpus(self, corpus):
         print("training context-free grammar model.")
@@ -190,9 +192,10 @@ class Model:
 
         distribution = []
         for c in candidates:
-            distribution += c["token"] * ceil(c["prob"] * len(candidates))
+            distribution += c["token"] * math.ceil(c["prob"] * len(candidates))
 
         return random.choice(distribution)
+
 
 if __name__ == "__main__":
     # we are gunna run this
@@ -202,14 +205,12 @@ if __name__ == "__main__":
 
     if mode == "train":
         model.train("corpora/tirukkural_couplets.txt", mode="cfg")
-        model.train("corpora/paradiselost-normalized.txt", mode="markov")
+        model.train(
+            "corpora/paradiselost-normalized-abridged.txt", mode="markov")
 
-        # # debugging
-        # model.train("corpora/ttest.txt", mode="cfg")
-        # model.train("corpora/ptest.txt", mode="markov")
-
-        with open("parameters.json", mode="w") as fd:
-            fd.write(json.dumps(model, default=lambda x: x.__dict__))
+        with open("pretrained.model", "wb") as fd:
+            pickle.dump(model, fd)
 
     if mode == "generate":
-        pass
+        with open("pretrained.model", "rb") as fd:
+            model = pickle.load(fd)

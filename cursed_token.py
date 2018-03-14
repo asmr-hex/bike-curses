@@ -6,7 +6,8 @@ class Token:
     def __init__(self, word):
         self.word = word
         self.freq = 0
-        self.pos = set()
+        self.probability = 0
+        self.pos = []
         self.phonemes = []
         if word in nltk.corpus.cmudict.dict():
             self.phonemes = nltk.corpus.cmudict.dict()[word][0]
@@ -19,7 +20,9 @@ class Token:
         self.n_next_tokens = 0
 
     def set_part_of_speech(self, pos):
-        self.pos.add(pos)
+        pos_set = set(self.pos)
+        pos_set.add(pos)
+        self.pos = list(pos_set)
 
     def make_observation(self, prev_token, next_token):
         print(
@@ -51,11 +54,14 @@ class Token:
         else:
             collection[token] = 1
 
-    def compute_probabilities(self):
+    def compute_probabilities(self, total):
         """run this method at the end of training"""
-        self.previous_tokens = map(
-            lambda k, v: float(v) / float(self.n_previous_tokens),
-            self.previous_tokens)
-        self.next_tokens = map(
-            lambda k, v: float(v) / float(self.n_next_tokens),
-            self.previous_tokens)
+        # compute conditional probabilities
+        for k, v in self.previous_tokens.items():
+            self.previous_tokens[k] = float(v) / float(self.n_previous_tokens)
+
+        for k, v in self.next_tokens.items():
+            self.previous_tokens[k] = float(v) / float(self.n_next_tokens)
+
+        # compute marginal probability of this token
+        self.probability = float(self.freq) / float(total)
