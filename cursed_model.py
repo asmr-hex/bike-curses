@@ -1,4 +1,5 @@
 import nltk
+from collections import defaultdoct
 from cursed_token import Token
 from cursed_cfg import CFG
 import sys
@@ -8,7 +9,14 @@ import json
 class Model:
     def __init__(self):
         self.markov_states = {}
+        self.rhymes = defaultdict(lambda: [])
         self.cfg = CFG()
+
+    def load_pretrained(self, filename):
+        pretrained = json.loads(open(filename, 'r'))
+        # TODO: json to model?
+        self.markov_states = pretrained['???']
+        self.cfg = pretrained['???']
 
     def train(self, filename, mode="markov"):
         print("hi, welcome friend. we're currently training on " + filename)
@@ -85,6 +93,10 @@ class Model:
                     # last token of line (presumably \n)
                     prev_token = current_token
                     current_token = token  # this should be \n
+
+                    # track the rhyme at the end of the line
+                    self.update_rhymes(prev_token)
+
                 else:
                     # interior token of line
                     prev_token = current_token
@@ -124,6 +136,29 @@ class Model:
         self.markov_states[curr_token].make_observation(
             prev_token,
             next_token)
+
+    def update_rhymes(self, token):
+        # the rhyming dictionary sorts words by their phonemes backwards
+        rhyme_part = self.get_rhyme_part(token)
+        self.rhymes[rhyme_part].push(token)
+
+    def get_rhyme_part(self, token):
+        vowels = ['AA', 'AE', 'AH', 'AO', 'AW', 'AX', 'AXR', 'AY', 'EH', 'ER',
+                  'EY', 'IH', 'IX', 'IY', 'OW', 'OY', 'UH', 'UW', 'UX']
+        rhyme_part = []
+        # the rhyme part ends at the first vowel in the backwards phonemes
+        for phoneme in token.phonemes[::-1]:
+            rhyme_part.push(phoneme)
+            if phoneme in vowels:
+                break
+        return ''.join(rhyme_part)
+
+    def get_rhyme(self, token, pos=None):
+        rhyme_part = self.get_rhyme_part(token)
+        rhyme_options = self.rhymes[rhyme_part]
+        if not pos:
+            return rhyme_options
+        return [r for r in rhyme_options if pos in rhyme_options.pos]
 
 
 if __name__ == "__main__":
