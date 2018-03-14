@@ -4,6 +4,7 @@ from cursed_token import Token
 from cursed_cfg import CFG
 import sys
 import json
+import random
 
 
 class Model:
@@ -149,17 +150,49 @@ class Model:
         # the rhyme part ends at the first vowel in the backwards phonemes
         for phoneme in token.phonemes[::-1]:
             rhyme_part.push(phoneme)
-            if phoneme in vowels:
+            # nltk's phonemes sometimes mark variants with numbers
+            if re.sub('\d', '', phoneme) in vowels:
                 break
         return ''.join(rhyme_part)
 
-    def get_rhyme(self, token, pos=None):
+    def get_rhyme(self, token, required_pos=None):
         rhyme_part = self.get_rhyme_part(token)
-        rhyme_options = self.rhymes[rhyme_part]
-        if not pos:
-            return rhyme_options
-        return [r for r in rhyme_options if pos in rhyme_options.pos]
+        candidates = [{
+            "token": x,
+            "prob": x.probability
+        } for x in self.rhymes[rhyme_part]]
 
+        return self.weighted_choice(candidates, required_pos)
+
+    def get_previous_token(self, token, required_pos=None):
+        ''' traverse backwards in the markov model '''
+        candidates = []
+        # only include options that fit part of speech constraints
+        for (candidate, probability) in token.previous.items():
+            candidates.push({
+                "token": self.get_token(candidate),
+                "prob": probability})
+
+        return self.weighted_choice(candidates, required_pos)
+
+    def get_token(self, text):
+        return self.markov_states[text]
+
+    def weighted_choice(self, candidates, required_pos):
+        ''' choose a token probabilistically biased by constraints
+        constraints:
+         (1) part of speech
+         (2) conditional transition probability (prev/next word given word)
+        '''
+        candidates = [w for w in candidates if required_pos in w.pos]
+        if len(candidates) == 0:
+            return False
+
+        distribution = []
+        for c in candidates:
+            distribution += c["token"] * ceil(c["prob"] * len(candidates))
+
+        return random.choice(distribution)
 
 if __name__ == "__main__":
     # we are gunna run this
