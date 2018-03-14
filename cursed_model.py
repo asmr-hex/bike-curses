@@ -2,6 +2,7 @@ import nltk
 from cursed_token import Token
 from cursed_cfg import CFG
 import sys
+import json
 
 
 class Model:
@@ -134,6 +135,13 @@ if __name__ == "__main__":
     if mode == "train":
         model.train("corpora/tirukkural_couplets.txt", mode="cfg")
         model.train("corpora/paradiselost-normalized.txt", mode="markov")
+
+        # # debugging
+        # model.train("corpora/ttest.txt", mode="cfg")
+        # model.train("corpora/ptest.txt", mode="markov")
+
+        with open("parameters.json", mode="w") as fd:
+            fd.write(json.dumps(model, default=lambda x: x.__dict__))
 
     if mode == "generate":
         pass
