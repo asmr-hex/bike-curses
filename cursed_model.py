@@ -7,13 +7,24 @@ import json
 import random
 import pickle
 import math
+import re
 
 
 class Model:
     def __init__(self):
         self.markov_states = {}
-        self.rhymes = defaultdict(lambda: [])
         self.cfg = CFG()
+        # ugh -___- we can't pickle lambda because they are nameless...
+        # so instead we need to define a named function to pass to the
+        # defaultdict. *--*
+        def idk():
+            return []
+        self.rhymes = defaultdict(idk)
+        # since the constraints imposed on picking a word based on the
+        # pos and conditional probability of the next/prev word, we want
+        # to be able to set a minimum probability for every token in the
+        # corpus based on the pos. (does that sentence make any sense...??)
+        self.pos_lookup = defaultdict(idk)
 
     def load_pretrained(self, filename):
         pretrained = json.loads(open(filename, 'r'))
@@ -98,7 +109,7 @@ class Model:
                     current_token = token  # this should be \n
 
                     # track the rhyme at the end of the line
-                    self.update_rhymes(prev_token)
+                    self.update_rhymes(self.get_token(prev_token))
 
                 else:
                     # interior token of line
@@ -116,10 +127,15 @@ class Model:
         # check whether we are at the end of a sentencey thing
         if token in [".", "!", "?", ";"]:
             print(" ".join(sentence))
+            # remove \n tokens so the pos'ing works as expected
+            sentence = re.sub('\n', '', sentence)
             # pos tag here
             for posses in nltk.pos_tag(sentence):
                 self.markov_states[posses[0]].set_part_of_speech(
                     posses[1])
+                # include in pos_lookup table
+                self.pos_lookup[posses[1]].append(posses[0])
+                self.pos_lookup[posses[1]] = list(set(self.pos_lookup[posses[1]]))
                 print(posses, end="")
 
             # clear sentence buffer
@@ -189,7 +205,8 @@ class Model:
         if required_pos:
             candidates = [w for w in candidates if required_pos in w['token'].pos]
         if len(candidates) == 0:
-            return False
+            # lookup an alternate word with the required part of speech
+            return random.choice(self.pos_lookup[required_pos])
 
         distribution = []
         for c in candidates:
