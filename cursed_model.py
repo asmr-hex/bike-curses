@@ -143,7 +143,7 @@ class Model:
     def update_rhymes(self, token):
         # the rhyming dictionary sorts words by their phonemes backwards
         rhyme_part = self.get_rhyme_part(token)
-        self.rhymes[rhyme_part].push(token)
+        self.rhymes[rhyme_part].append(token)
 
     def get_rhyme_part(self, token):
         vowels = ['AA', 'AE', 'AH', 'AO', 'AW', 'AX', 'AXR', 'AY', 'EH', 'ER',
@@ -151,7 +151,7 @@ class Model:
         rhyme_part = []
         # the rhyme part ends at the first vowel in the backwards phonemes
         for phoneme in token.phonemes[::-1]:
-            rhyme_part.push(phoneme)
+            rhyme_part.append(phoneme)
             # nltk's phonemes sometimes mark variants with numbers
             if re.sub('\d', '', phoneme) in vowels:
                 break
@@ -170,8 +170,8 @@ class Model:
         ''' traverse backwards in the markov model '''
         candidates = []
         # only include options that fit part of speech constraints
-        for (candidate, probability) in token.previous.items():
-            candidates.push({
+        for (candidate, probability) in token.previous_tokens.items():
+            candidates.append({
                 "token": self.get_token(candidate),
                 "prob": probability})
 
@@ -186,13 +186,14 @@ class Model:
          (1) part of speech
          (2) conditional transition probability (prev/next word given word)
         '''
-        candidates = [w for w in candidates if required_pos in w.pos]
+        if required_pos:
+            candidates = [w for w in candidates if required_pos in w['token'].pos]
         if len(candidates) == 0:
             return False
 
         distribution = []
         for c in candidates:
-            distribution += c["token"] * math.ceil(c["prob"] * len(candidates))
+            distribution += [c["token"]] * math.ceil(c["prob"] * len(candidates))
 
         return random.choice(distribution)
 
