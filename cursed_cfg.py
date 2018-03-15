@@ -3,7 +3,6 @@ import numpy as np
 class CFG:
     def __init__(self):
         self.structures = {}
-        self.total = 0
 
     def add_structure(self, pattern):
         structure_id = "".join(pattern)
@@ -15,8 +14,6 @@ class CFG:
         else:
             self.structures[structure_id] = Structure(pattern)
 
-        self.total += 1
-
     def get_sample_grammar(self):
         patterns = list(self.structures.values())
         probs = [p.probability for p in patterns]
@@ -25,7 +22,7 @@ class CFG:
 
     def compute_probability(self):
         for pattern in self.structures.values():
-            pattern.compute_probability(self.total)
+            pattern.compute_probability(len(self.structures))
 
 
 class Structure:

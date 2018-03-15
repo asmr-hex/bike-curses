@@ -51,7 +51,7 @@ class Line:
 if __name__ == '__main__':
     curser = Curser()
     for i in range(20):
-        try:
-            print(curser.write_curse())
-        except Exception as e:
-            print('oops:', e)
+        curse = curser.write_curse()
+        print(' '.join(curse[0]))
+        print(' '.join(curse[1]))
+        print('\n')

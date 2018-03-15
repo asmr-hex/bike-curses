@@ -1,9 +1,6 @@
 import nltk
-from collections import defaultdict
 from cursed_token import Token
 from cursed_cfg import CFG
-import sys
-import json
 import random
 import pickle
 import math
@@ -14,23 +11,13 @@ class Model:
     def __init__(self):
         self.markov_states = {}
         self.cfg = CFG()
-        # ugh -___- we can't pickle lambda because they are nameless...
-        # so instead we need to define a named function to pass to the
-        # defaultdict. *--*
-        def idk():
-            return []
-        self.rhymes = defaultdict(idk)
+        # ugh -___-
+        self.rhymes = {}
         # since the constraints imposed on picking a word based on the
         # pos and conditional probability of the next/prev word, we want
         # to be able to set a minimum probability for every token in the
         # corpus based on the pos. (does that sentence make any sense...??)
-        self.pos_lookup = defaultdict(idk)
-
-    def load_pretrained(self, filename):
-        pretrained = json.loads(open(filename, 'r'))
-        # TODO: json to model?
-        self.markov_states = pretrained['???']
-        self.cfg = pretrained['???']
+        self.pos_lookup = {}
 
     def train(self, filename, mode="markov"):
         print("hi, welcome friend. we're currently training on " + filename)
@@ -39,12 +26,25 @@ class Model:
         with open(filename) as corpus:
             if mode is "markov":
                 self.train_markov_states_on_corpus(corpus)
+                #  compute all probabilities
+                for token in self.markov_states.values():
+                    token.compute_probabilities(len(self.markov_states))
+
+                # discard cfg patterns which contain POS which are not represented in
+                # the markov corpus.
+                safe_structures = {}
+                for idx, structure in self.cfg.structures.items():
+                    valid_structure = True
+                    for pos in structure.pattern:
+                        if pos not in self.pos_lookup:
+                            valid_structure = False
+                            break
+                    if valid_structure:
+                        safe_structures[idx] = structure
+                self.cfg.structures = safe_structures
+                self.cfg.compute_probability()
             else:
                 self.train_cfg_on_corpus(corpus)
-
-        #  compute all probabilities
-        for token in self.markov_states.values():
-            token.compute_probabilities(len(self.markov_states))
 
     def train_cfg_on_corpus(self, corpus):
         print("training context-free grammar model.")
@@ -54,7 +54,7 @@ class Model:
             tags = [tup[1] for tup in nltk.pos_tag(tokens)]
             self.cfg.add_structure(tags)
 
-        self.cfg.compute_probability()
+        #self.cfg.compute_probability()
 
     def train_markov_states_on_corpus(self, corpus):
         print("training markov model.")
@@ -101,7 +101,7 @@ class Model:
 
                     # tokenize this current token
                     self.update_markov_state(
-                            prev_token, current_token, next_token)
+                        prev_token, current_token, next_token)
 
                 elif idx == len(tokens)-1:
                     # last token of line (presumably \n)
@@ -128,15 +128,16 @@ class Model:
         if token in [".", "!", "?", ";"]:
             print(" ".join(sentence))
             # remove \n tokens so the pos'ing works as expected
-            sentence = re.sub('\n', '', sentence)
+            sentence = [s for s in sentence if s != '\n']
             # pos tag here
-            for posses in nltk.pos_tag(sentence):
-                self.markov_states[posses[0]].set_part_of_speech(
-                    posses[1])
+            for word, pos in nltk.pos_tag(sentence):
+                self.markov_states[word].set_part_of_speech(pos)
                 # include in pos_lookup table
-                self.pos_lookup[posses[1]].append(posses[0])
-                self.pos_lookup[posses[1]] = list(set(self.pos_lookup[posses[1]]))
-                print(posses, end="")
+                if pos not in self.pos_lookup:
+                    self.pos_lookup[pos] = []
+                self.pos_lookup[pos].append(word)
+                self.pos_lookup[pos] = list(set(self.pos_lookup[pos]))
+                #print(word, pos, end="")
 
             # clear sentence buffer
             sentence = []
@@ -159,6 +160,8 @@ class Model:
     def update_rhymes(self, token):
         # the rhyming dictionary sorts words by their phonemes backwards
         rhyme_part = self.get_rhyme_part(token)
+        if rhyme_part not in self.rhymes:
+            self.rhymes[rhyme_part] = []
         self.rhymes[rhyme_part].append(token)
 
     def get_rhyme_part(self, token):
@@ -169,7 +172,7 @@ class Model:
         for phoneme in token.phonemes[::-1]:
             rhyme_part.append(phoneme)
             # nltk's phonemes sometimes mark variants with numbers
-            if re.sub('\d', '', phoneme) in vowels:
+            if re.sub(r'\d', '', phoneme) in vowels:
                 break
         return ''.join(rhyme_part)
 
@@ -203,32 +206,27 @@ class Model:
          (2) conditional transition probability (prev/next word given word)
         '''
         if required_pos:
-            candidates = [w for w in candidates if required_pos in w['token'].pos]
+            candidates = [w for w in candidates \
+                if required_pos in w['token'].pos]
         if len(candidates) == 0:
             # lookup an alternate word with the required part of speech
-            return random.choice(self.pos_lookup[required_pos])
+            return self.get_token(random.choice(self.pos_lookup[required_pos]))
 
-        distribution = []
+        distr = []
         for c in candidates:
-            distribution += [c["token"]] * math.ceil(c["prob"] * len(candidates))
+            distr += [c["token"]] * math.ceil(c["prob"] * len(candidates))
 
-        return random.choice(distribution)
+        return random.choice(distr)
 
 
 if __name__ == "__main__":
     # we are gunna run this
-    mode = sys.argv[1]
-
     model = Model()
 
-    if mode == "train":
-        model.train("corpora/tirukkural_couplets.txt", mode="cfg")
-        model.train(
-            "corpora/paradiselost-normalized-abridged.txt", mode="markov")
+    model.train("corpora/tirukkural_couplets.txt", mode="cfg")
+    model.train(
+        "corpora/paradiselost-normalized.txt", mode="markov")
 
-        with open("pretrained.model", "wb") as fd:
-            pickle.dump(model, fd)
+    with open("pretrained.model", "wb") as fd:
+        pickle.dump(model, fd)
 
-    if mode == "generate":
-        with open("pretrained.model", "rb") as fd:
-            model = pickle.load(fd)
