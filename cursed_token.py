@@ -1,5 +1,5 @@
 import nltk
-
+cmudict = nltk.corpus.cmudict.dict()
 
 class Token:
     """A class to describe tokens in our model"""
@@ -9,8 +9,8 @@ class Token:
         self.probability = 0
         self.pos = []
         self.phonemes = []
-        if str.lower(word) in nltk.corpus.cmudict.dict():
-            self.phonemes = nltk.corpus.cmudict.dict()[str.lower(word)][0]
+        if str.lower(word) in cmudict:
+            self.phonemes = cmudict[str.lower(word)][0]
             print("\t\t"+word+" ("+" ".join(self.phonemes)+")")
 
         # maps from token to count
