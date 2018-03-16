@@ -13,15 +13,28 @@ class Curser:
 
     def write_curse(self):
         ''' compose a couplet of two rhyming lines '''
-        first_line = Line(self.model)
-        second_line = Line(self.model, rhyme=first_line.terminal_token)
+        success = False
+        while not success:
+            first_line = Line(self.model)
+            try:
+                second_line = Line(self.model, rhyme=first_line.terminal_token)
+            except Exception as e:
+                print(e)
+                continue
+
+            success = True
+
         return [first_line.text, second_line.text]
+
 
 class Line:
     def __init__(self, model, rhyme=None):
         self.model = model
         cfg = self.model.cfg.get_sample_grammar()
         self.grammar = cfg.pattern
+
+        # temporarily remove punctuation from cfg pattern
+        punc = self.remove_trailing_punc()
 
         if rhyme:
             self.terminal_token = self.model.get_rhyme(
@@ -32,11 +45,29 @@ class Line:
                 linebreak_token, required_pos=self.grammar[-1])
         if not self.terminal_token:
             raise(Exception('Poem failed to even begin'))
+
         self.text = self.write_line()
+
+        # add back punctuation if necessary
+        if len(punc) != 0:
+            self.text.append(punc)
+
+    def remove_trailing_punc(self):
+        last_pos = self.grammar[-1]
+
+        print(last_pos)
+
+        if last_pos in ['.', ',', '!', ';', ':', '?', 'POS']:
+            self.grammar = self.grammar[:-1]
+            return last_pos
+        return ''
 
     def write_line(self):
         ''' traverse the markov chain constrained by the grammar '''
         current = self.terminal_token
+        print('TERMINAL TOKEN ' + current.word)
+        print('TERMINAL_POS ' + " ".join(current.pos))
+        print('TERMINAL_PHONEMES ' + " ".join(current.phonemes))
         text = []
         # traverse the grammar backwards, ignoring the already-set terminal pos
         for pos in self.grammar[-2::-1]:

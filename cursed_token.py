@@ -9,8 +9,8 @@ class Token:
         self.probability = 0
         self.pos = []
         self.phonemes = []
-        if word in nltk.corpus.cmudict.dict():
-            self.phonemes = nltk.corpus.cmudict.dict()[word][0]
+        if str.lower(word) in nltk.corpus.cmudict.dict():
+            self.phonemes = nltk.corpus.cmudict.dict()[str.lower(word)][0]
             print("\t\t"+word+" ("+" ".join(self.phonemes)+")")
 
         # maps from token to count

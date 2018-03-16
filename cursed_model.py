@@ -183,7 +183,12 @@ class Model:
             "prob": x.probability
         } for x in self.rhymes[rhyme_part]]
 
-        return self.weighted_choice(candidates, required_pos)
+        rhyme = self.weighted_choice(candidates, required_pos)
+
+        if rhyme_part == self.get_rhyme_part(rhyme):
+            return rhyme
+
+        return False
 
     def get_previous_token(self, token, required_pos=None):
         ''' traverse backwards in the markov model '''
