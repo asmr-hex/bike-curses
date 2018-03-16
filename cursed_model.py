@@ -76,7 +76,7 @@ class Model:
         # start streaming coprus line by line
         for line in corpus:
             # tokenize this line
-            tokens = nltk.word_tokenize(line)
+            tokens = nltk.word_tokenize(line.lower())
 
             # ignore single word lines
             if len(tokens) < 2:
@@ -187,11 +187,11 @@ class Model:
         candidates = [{
             "token": x,
             "prob": x.probability
-        } for x in self.rhymes[rhyme_part]]
+        } for x in self.rhymes[rhyme_part] if x.word != token]
 
         rhyme = self.weighted_choice(candidates, required_pos)
 
-        if rhyme_part == self.get_rhyme_part(rhyme):
+        if rhyme_part == self.get_rhyme_part(rhyme) and len(rhyme_part) > 0:
             return rhyme
 
         return False
