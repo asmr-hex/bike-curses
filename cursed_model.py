@@ -5,6 +5,7 @@ import random
 import pickle
 import math
 import re
+import time
 
 
 class Model:
@@ -21,6 +22,8 @@ class Model:
 
     def train(self, filename, mode="markov"):
         print("hi, welcome friend. we're currently training on " + filename)
+
+        start_time = time.time()
 
         # open training file
         with open(filename) as corpus:
@@ -45,6 +48,9 @@ class Model:
                 self.cfg.compute_probability()
             else:
                 self.train_cfg_on_corpus(corpus)
+
+        end_time = time.time()
+        print('training took: ' + str(end_time - start_time) + " seconds")
 
     def train_cfg_on_corpus(self, corpus):
         print("training context-free grammar model.")
