@@ -175,11 +175,16 @@ class Model:
                   'EY', 'IH', 'IX', 'IY', 'OW', 'OY', 'UH', 'UW', 'UX']
         rhyme_part = []
         # the rhyme part ends at the first vowel in the backwards phonemes
+        found_vowel = False
         for phoneme in token.phonemes[::-1]:
+            if found_vowel and re.sub(r'\d', '', phoneme) not in vowels:
+                break
             rhyme_part.append(phoneme)
             # nltk's phonemes sometimes mark variants with numbers
             if re.sub(r'\d', '', phoneme) in vowels:
-                break
+                # once we find a vowel, we should include all following vowels
+                # and stop when we hit a consonant
+                found_vowel = True
         return ''.join(rhyme_part)
 
     def get_rhyme(self, token, required_pos=None):
