@@ -2,6 +2,9 @@
 from cursed_model import Model
 import pickle
 
+class CursedException(Exception):
+    """ an exception for when poems just don't turn out how you want """
+    pass
 
 class Curser:
     ''' May the sword of anathema slay
@@ -18,8 +21,7 @@ class Curser:
             first_line = Line(self.model)
             try:
                 second_line = Line(self.model, rhyme=first_line.terminal_token)
-            except Exception as e:
-                print(e)
+            except CursedException:
                 continue
 
             success = True
@@ -44,7 +46,7 @@ class Line:
             self.terminal_token = self.model.get_previous_token(
                 linebreak_token, required_pos=self.grammar[-1])
         if not self.terminal_token:
-            raise(Exception('Poem failed to even begin'))
+            raise(CursedException('Poem failed to even begin'))
 
         self.text = self.write_line()
 
@@ -55,8 +57,6 @@ class Line:
     def remove_trailing_punc(self):
         last_pos = self.grammar[-1]
 
-        print(last_pos)
-
         if last_pos in ['.', ',', '!', ';', ':', '?', 'POS']:
             self.grammar = self.grammar[:-1]
             return last_pos
@@ -65,16 +65,13 @@ class Line:
     def write_line(self):
         ''' traverse the markov chain constrained by the grammar '''
         current = self.terminal_token
-        print('TERMINAL TOKEN ' + current.word)
-        print('TERMINAL_POS ' + " ".join(current.pos))
-        print('TERMINAL_PHONEMES ' + " ".join(current.phonemes))
         text = []
         # traverse the grammar backwards, ignoring the already-set terminal pos
         for pos in self.grammar[-2::-1]:
             text.append(current.word)
             current = self.model.get_previous_token(current, required_pos=pos)
             if not current:
-                raise(Exception('Line failed'))
+                raise(CursedException('Line failed'))
 
         return text[::-1]
 
